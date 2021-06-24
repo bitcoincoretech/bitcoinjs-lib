@@ -2,9 +2,22 @@ import { Network } from './networks';
 import * as NETWORKS from './networks';
 import * as types from './types';
 const ecc = require('tiny-secp256k1');
+const BN = require('bn.js');
 const randomBytes = require('randombytes');
 const typeforce = require('typeforce');
 const wif = require('wif');
+
+const EC_P = new BN(
+  Buffer.from(
+    'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f',
+    'hex',
+  ),
+);
+const EC_P_REDUCTION = BN.red(EC_P);
+const EC_P_QUADRATIC_RESIDUE = EC_P.addn(1).divn(4);
+const BN_2 = new BN(2);
+const BN_3 = new BN(3);
+const BN_7 = new BN(7);
 
 const isOptions = typeforce.maybe(
   typeforce.compile({
@@ -116,6 +129,28 @@ function fromPublicKey(buffer: Buffer, options?: ECPairOptions): ECPair {
   return new ECPair(undefined, buffer, options);
 }
 
+function liftX(buffer: Buffer): Buffer | null {
+  typeforce(types.Buffer256bit, buffer);
+  const x = new BN(buffer);
+  if (x.gte(EC_P)) return null;
+  const xRed = x.toRed(EC_P_REDUCTION);
+  const ySq = xRed
+    .redPow(BN_3)
+    .add(BN_7)
+    .mod(EC_P);
+
+  const y = ySq.redPow(EC_P_QUADRATIC_RESIDUE);
+
+  if (!ySq.eq(y.redPow(BN_2))) {
+    return null;
+  }
+  const y1 = (y & 1) === 0 ? y : EC_P.sub(y);
+  return Buffer.concat([
+    Buffer.from(x.toBuffer('be')),
+    Buffer.from(y1.toBuffer('be')),
+  ]);
+}
+
 function fromWIF(wifString: string, network?: Network | Network[]): ECPair {
   const decoded = wif.decode(wifString);
   const version = decoded.version;
@@ -158,4 +193,4 @@ function makeRandom(options?: ECPairOptions): ECPair {
   return fromPrivateKey(d, options);
 }
 
-export { makeRandom, fromPrivateKey, fromPublicKey, fromWIF };
+export { makeRandom, fromPrivateKey, fromPublicKey, fromWIF, liftX };
