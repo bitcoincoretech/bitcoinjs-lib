@@ -7,7 +7,7 @@ const typef = require('typeforce');
 const OPS = bscript.OPS;
 const ecc = require('tiny-secp256k1');
 
-const { bech32 } = require('bech32');
+const { bech32, bech32m } = require('bech32');
 
 const EMPTY_BUFFER = Buffer.alloc(0);
 
@@ -34,8 +34,8 @@ function chunkHasUncompressedPubkey(chunk: StackElement): boolean {
 
 // input: <>
 // witness: [redeemScriptSig ...] {redeemScript}
-// output: OP_0 {sha256(redeemScript)}
-export function p2wsh(a: Payment, opts?: PaymentOpts): Payment {
+// output: OP_1 {publicKey}
+export function p2tr(a: Payment, opts?: PaymentOpts): Payment {
   if (!a.address && !a.hash && !a.output && !a.redeem && !a.witness)
     throw new TypeError('Not enough data');
   opts = Object.assign({ validate: true }, opts || {});
@@ -61,9 +61,9 @@ export function p2wsh(a: Payment, opts?: PaymentOpts): Payment {
   );
 
   const _address = lazy.value(() => {
-    const result = bech32.decode(a.address);
+    const result = bech32m.decode(a.address);
     const version = result.words.shift();
-    const data = bech32.fromWords(result.words);
+    const data = bech32m.fromWords(result.words);
     return {
       version,
       prefix: result.prefix,
@@ -94,12 +94,12 @@ export function p2wsh(a: Payment, opts?: PaymentOpts): Payment {
   });
   lazy.prop(o, 'output', () => {
     if (!o.hash) return;
-    return bscript.compile([OPS.OP_0, o.hash]);
+    return bscript.compile([OPS.OP_1, o.hash]);
   });
   lazy.prop(o, 'redeem', () => {
     if (!a.witness) return;
     return {
-      output: a.witness[a.witness.length - 1],
+      output: a.witness[a.witness.length - 1], // <-- last on the stack is the reedem lock script
       input: EMPTY_BUFFER,
       witness: a.witness.slice(0, -1),
     };

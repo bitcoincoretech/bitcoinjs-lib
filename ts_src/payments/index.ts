@@ -14,7 +14,7 @@ export interface Payment {
   data?: Buffer[];
   m?: number;
   n?: number;
-  pubkeys?: Buffer[];
+  pubkeys?: Buffer[]; // <-- can be used for taproot 
   input?: Buffer;
   signatures?: Buffer[];
   pubkey?: Buffer;
@@ -22,6 +22,7 @@ export interface Payment {
   address?: string;
   hash?: Buffer;
   redeem?: Payment;
+  taprootRedeems?: Payment[];
   witness?: Buffer[];
 }
 
