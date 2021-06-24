@@ -39,6 +39,7 @@ declare class ECPair implements ECPairInterface {
 }
 declare function fromPrivateKey(buffer: Buffer, options?: ECPairOptions): ECPair;
 declare function fromPublicKey(buffer: Buffer, options?: ECPairOptions): ECPair;
+declare function liftX(buffer: Buffer): Buffer | null;
 declare function fromWIF(wifString: string, network?: Network | Network[]): ECPair;
 declare function makeRandom(options?: ECPairOptions): ECPair;
-export { makeRandom, fromPrivateKey, fromPublicKey, fromWIF };
+export { makeRandom, fromPrivateKey, fromPublicKey, fromWIF, liftX };

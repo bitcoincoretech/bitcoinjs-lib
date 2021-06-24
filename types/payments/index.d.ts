@@ -21,6 +21,7 @@ export interface Payment {
     address?: string;
     hash?: Buffer;
     redeem?: Payment;
+    taprootRedeems?: Payment[];
     witness?: Buffer[];
 }
 export declare type PaymentCreator = (a: Payment, opts?: PaymentOpts) => Payment;
