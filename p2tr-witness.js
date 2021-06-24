@@ -3,6 +3,7 @@ const BN = require('bn.js'); // TODO: remove? see changelog bn.js
 const ANNEX_PREFIX = 0x50;
 const EC_P = Buffer.from('fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f', 'hex');
 const P = new BN(EC_P);
+const P_REDUCTION = BN.red(P);
 const P_QUADRATIC_RESIDUE = P.addn(1).divn(4);
 const BN_3 = new BN(3);
 const BN_7 = new BN(7);
@@ -54,15 +55,16 @@ const leafVersion = controlBlock[0] & 0xfe;
 
 
 function liftX(b) {
-    console.log('liftX IN');
     // check if x instance of buffer and length 32
-    const x = new BN(b);
+    const x = new BN(b).toRed(P_REDUCTION);
     if (x.gte(P)) return null;
-    const yy = x.pow(BN_3).add(BN_7).mod(P);
-    // const y = yy.pow(P_QUADRATIC_RESIDUE).mod(P);
+    const ySq = x.redPow(BN_3).add(BN_7).mod(P);
+    const y = ySq.redPow(P_QUADRATIC_RESIDUE).mod(P);
 
-    console.log('liftX OUT');
-    return yy;
+    console.log('ySq', ySq.toJSON());
+    console.log('y2', y.redPow(new BN(2)).mod(P).toJSON());
+    console.log('y', y.toJSON());
+    return y;
 }
 
 
@@ -77,7 +79,7 @@ function liftX(b) {
 //     if (x >= p) return null;
 //     const yy = (x ** 3n + 7n) % p;
 //     // const y = (yy ** q) % p;
-    
+
 
 //     console.log('liftX OUT');
 //     return yy;
@@ -85,4 +87,3 @@ function liftX(b) {
 
 const x = '0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798';
 const y = liftX(x);
-console.log('y', y.toJSON());
