@@ -99,6 +99,7 @@ function liftX(buffer) {
   const y1 = (y & 1) === 0 ? y : EC_P.sub(y);
   // TODO: which is the best format to return the coordinates?
   return Buffer.concat([
+    Buffer.from([0x04]),
     Buffer.from(x1.toBuffer('be')),
     Buffer.from(y1.toBuffer('be')),
   ]);
@@ -138,3 +139,7 @@ function makeRandom(options) {
   return fromPrivateKey(d, options);
 }
 exports.makeRandom = makeRandom;
+const pointFromScalar = ecc.pointFromScalar; // could use the fromPrivateKey...
+exports.pointFromScalar = pointFromScalar;
+const pointAdd = ecc.pointAdd;
+exports.pointAdd = pointAdd;
