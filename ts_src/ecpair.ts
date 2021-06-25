@@ -133,8 +133,8 @@ function liftX(buffer: Buffer): Buffer | null {
   typeforce(types.Buffer256bit, buffer);
   const x = new BN(buffer);
   if (x.gte(EC_P)) return null;
-  const xRed = x.toRed(EC_P_REDUCTION);
-  const ySq = xRed
+  const x1 = x.toRed(EC_P_REDUCTION);
+  const ySq = x1
     .redPow(BN_3)
     .add(BN_7)
     .mod(EC_P);
@@ -145,8 +145,9 @@ function liftX(buffer: Buffer): Buffer | null {
     return null;
   }
   const y1 = (y & 1) === 0 ? y : EC_P.sub(y);
+  // TODO: which is the best format to return the coordinates?
   return Buffer.concat([
-    Buffer.from(x.toBuffer('be')),
+    Buffer.from(x1.toBuffer('be')),
     Buffer.from(y1.toBuffer('be')),
   ]);
 }
