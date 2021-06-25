@@ -194,4 +194,7 @@ function makeRandom(options?: ECPairOptions): ECPair {
   return fromPrivateKey(d, options);
 }
 
-export { makeRandom, fromPrivateKey, fromPublicKey, fromWIF, liftX };
+const pointFromScalar = ecc.pointFromScalar; // could use the fromPrivateKey...
+const pointAdd = ecc.pointAdd;
+
+export { makeRandom, fromPrivateKey, fromPublicKey, fromWIF, liftX, pointFromScalar, pointAdd };

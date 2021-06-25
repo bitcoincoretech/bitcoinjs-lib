@@ -33,3 +33,8 @@ function hash256(buffer) {
   return sha256(sha256(buffer));
 }
 exports.hash256 = hash256;
+function taggedHash(tag, buffer) {
+  const tagHash = sha256(tag);
+  return sha256(Buffer.concat([tagHash, tagHash, buffer]));
+}
+exports.taggedHash = taggedHash;

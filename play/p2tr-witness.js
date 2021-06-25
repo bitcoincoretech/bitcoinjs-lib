@@ -1,12 +1,13 @@
 const BN = require('bn.js'); // TODO: remove? see changelog bn.js
+const ecpair = require('../src/ecpair')
+const taggedHash = require('../src/crypto').taggedHash;
 
 const ANNEX_PREFIX = 0x50;
-const EC_P = Buffer.from('fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f', 'hex');
-const P = new BN(EC_P);
-const P_REDUCTION = BN.red(P);
-const P_QUADRATIC_RESIDUE = P.addn(1).divn(4);
-const BN_3 = new BN(3);
-const BN_7 = new BN(7);
+const EC_N = Buffer.from('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141', 'hex');
+
+const TAP_LEAF_TAG = Buffer.from('TapLeaf', 'utf8');
+const TAP_BRANCH_TAG = Buffer.from('TapBranch', 'utf8');
+const TAP_TWEAK_TAG = Buffer.from('TapTweak', 'utf8');
 
 const witnessHex = [
     "9675a9982c6398ea9d441cb7a943bcd6ff033cc3a2e01a0178a7d3be4575be863871c6bf3eef5ecd34721c784259385ca9101c3a313e010ac942c99de05aaaa602",
@@ -42,48 +43,42 @@ if (controlBlock.length < 33) {
 if ((controlBlock.length - 33) % 32 !== 0) {
     throw new Error('The control-block length is incorrect!');
 }
-if ((controlBlock.length - 33) / 32 > 128) {
+const m = (controlBlock.length - 33) / 32;
+if (m > 128) {
     throw new Error(`The control-block length is too large. Got ${controlBlock.length}.`);
 }
 const script = witness[witness.length - 2];
 
-const pxxx = controlBlock.slice(1, 33);
+const p = controlBlock.slice(1, 33);
+const v = controlBlock[0] & 0xfe; // leaf version
+
+const P = ecpair.liftX(p) // TODO: representation
 
 
-const leafVersion = controlBlock[0] & 0xfe;
+const k = [];
+const e = [];
+const xxx = Buffer.concat(Buffer.from(v), Buffer.from(compactSize(script.length)), script);
+k[0] = taggedHash(TAP_LEAF_TAG, xxx);
 
 
-
-function liftX(b) {
-    // check if x instance of buffer and length 32
-    const x = new BN(b).toRed(P_REDUCTION);
-    if (x.gte(P)) return null;
-    const ySq = x.redPow(BN_3).add(BN_7).mod(P);
-    const y = ySq.redPow(P_QUADRATIC_RESIDUE).mod(P);
-
-    console.log('ySq', ySq.toJSON());
-    console.log('y2', y.redPow(new BN(2)).mod(P).toJSON());
-    console.log('y', y.toJSON());
-    return y;
+for (let j = 0; j < m - 1; j++) {
+    e[j] = controlBlock.slice(33 + 32 * j, 65 + 32 * j);
+    if (k[j].compare(e[j]) < 0) {
+        k[j + 1] = taggedHash(TAP_BRANCH_TAG, k[j] || e[j]);
+    } else {
+        k[j + 1] = taggedHash(TAP_BRANCH_TAG, e[j] || k[j]);
+    }
 }
 
+const t = taggedHash(TAP_TWEAK_TAG, k[m + 1]);
+if (t.compare(EC_N) >= 0) {
+    throw new Error('Over the order of secp256k1')
+}
 
-// const p = BigInt('0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f');
-// const q = (p + 1n) / 4n;
+//pointFromScalar
+const T = ecpair.pointFromScalar(t);
+const Q = ecpair.addPoints(P, T);
 
-// function liftX(hex) {
-//     console.log('liftX IN');
-
-//     const x = BigInt(hex);
-
-//     if (x >= p) return null;
-//     const yy = (x ** 3n + 7n) % p;
-//     // const y = (yy ** q) % p;
-
-
-//     console.log('liftX OUT');
-//     return yy;
-// }
-
-const x = '0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798';
-const y = liftX(x);
+if (q !== x(Q) || (c[0] & 1) !== (y(Q) % 2)) {
+    throw new Error('xxxxxx')
+}

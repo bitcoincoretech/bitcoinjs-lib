@@ -31,3 +31,8 @@ export function hash160(buffer: Buffer): Buffer {
 export function hash256(buffer: Buffer): Buffer {
   return sha256(sha256(buffer));
 }
+
+export function taggedHash(tag: Buffer, buffer: Buffer): Buffer {
+  const tagHash = sha256(tag);
+  return sha256(Buffer.concat([tagHash, tagHash, buffer]));
+}
