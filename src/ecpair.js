@@ -97,7 +97,6 @@ function liftX(buffer) {
     return null;
   }
   const y1 = (y & 1) === 0 ? y : EC_P.sub(y);
-  // TODO: which is the best format to return the coordinates?
   return Buffer.concat([
     Buffer.from([0x04]),
     Buffer.from(x1.toBuffer('be')),

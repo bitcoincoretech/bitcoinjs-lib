@@ -10,6 +10,8 @@ export declare class BufferWriter {
     offset: number;
     constructor(buffer: Buffer, offset?: number);
     writeUInt8(i: number): void;
+    writeInt16(i: number): void;
+    writeUInt16(i: number): void;
     writeInt32(i: number): void;
     writeUInt32(i: number): void;
     writeUInt64(i: number): void;

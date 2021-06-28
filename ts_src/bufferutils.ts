@@ -66,6 +66,14 @@ export class BufferWriter {
     this.offset = this.buffer.writeUInt8(i, this.offset);
   }
 
+  writeInt16(i: number): void {
+    this.offset = this.buffer.writeInt16LE(i, this.offset);
+  }
+
+  writeUInt16(i: number): void {
+    this.offset = this.buffer.writeUInt16LE(i, this.offset);
+  }
+
   writeInt32(i: number): void {
     this.offset = this.buffer.writeInt32LE(i, this.offset);
   }

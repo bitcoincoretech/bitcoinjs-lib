@@ -54,13 +54,13 @@ const script = witness[witness.length - 2];
 const p = controlBlock.slice(1, 33);
 const v = controlBlock[0] & 0xfe; // leaf version
 
-const P = ecpair.liftX(p) // TODO: representation
+const P = ecpair.liftX(p);
 
 
 const k = [];
 const e = [];
-const scriptCompactSize = script.length // TODO: NOK: compact_size(????)
-const tapLeafMsg = Buffer.concat([Buffer.from([v]), Buffer.from([scriptCompactSize]), script]);
+
+const tapLeafMsg = Buffer.concat([Buffer.from([v]), Buffer.from([compactSize(script.length)]), script]);
 k[0] = taggedHash(TAP_LEAF_TAG, tapLeafMsg); // test values?
 
 
@@ -78,13 +78,12 @@ if (t.compare(EC_N) >= 0) {
     throw new Error('Over the order of secp256k1')
 }
 
-//pointFromScalar
 const T = ecpair.pointFromScalar(t, false);
 
 const Q = ecpair.pointAdd(P, T);
 console.log('Q', Q.toString('hex'));
 
-if (q !== x(Q) || (c[0] & 1) !== (y(Q) % 2)) {
+if (q !== x(Q) || (controlBlock[0] & 1) !== (y(Q) % 2)) {
     throw new Error('Check Failed!')
 }
 
@@ -98,6 +97,31 @@ function y(buffer) {
     // check int starts with 0x04 and size 65
     // chunkHasUncompressedPubkey
     buffer.slice(33)
+}
+
+function compactSize(l) {
+    if (l < 253) {
+        return Buffer.from([l]);
+    }
+    if (l < 0x10000) {
+        const b = Buffer.allocUnsafe(3);
+        const bw = new BufferWriter(b);
+        bw.writeUInt8(253);
+        bw.writeUInt16(l);
+        return b
+    }
+    if (l < 0x100000000) {
+        const b = Buffer.allocUnsafe(5);
+        const bw = new BufferWriter(b);
+        bw.writeUInt8(254);
+        bw.writeUInt32(l);
+        return b
+    }
+    const b = Buffer.allocUnsafe(9);
+    const bw = new BufferWriter(b);
+    bw.writeUInt8(255);
+    bw.writeUInt64(l);
+    return b
 }
 
 //Q: 040afd16b0586dea44b0818d1b8dec7b13f57c2f0f9135bba13be4c4ae2ced599398366ed7e78dbf5d8b0f22d7d2353a206d7b1a5d855a0de9fea27cab459b365e
