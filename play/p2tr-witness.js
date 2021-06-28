@@ -60,8 +60,8 @@ const P = ecpair.liftX(p);
 const k = [];
 const e = [];
 
-const tapLeafMsg = Buffer.concat([Buffer.from([v]), Buffer.from([compactSize(script.length)]), script]);
-k[0] = taggedHash(TAP_LEAF_TAG, tapLeafMsg); // test values?
+const tapLeafMsg = Buffer.concat([Buffer.from([v]), compactSize(script.length), script]);
+k[0] = taggedHash(TAP_LEAF_TAG, tapLeafMsg); // TODO: test values?
 
 
 for (let j = 0; j < m - 1; j++) {
