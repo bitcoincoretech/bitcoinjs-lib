@@ -1,4 +1,4 @@
-const BN = require('bn.js'); // TODO: remove? see changelog bn.js
+
 const ecpair = require('../src/ecpair');
 const bscript = require('../src/script');
 const taggedHash = require('../src/crypto').taggedHash;
@@ -73,7 +73,7 @@ const tapLeafMsg = Buffer.concat([Buffer.from([v]), cSize, script]);
 k[0] = taggedHash(TAP_LEAF_TAG, tapLeafMsg); // TODO: test values?
 
 
-for (let j = 0; j < m - 1; j++) {
+for (let j = 0; j < m; j++) {
     e[j] = controlBlock.slice(33 + 32 * j, 65 + 32 * j);
     if (k[j].compare(e[j]) < 0) {
         k[j + 1] = taggedHash(TAP_BRANCH_TAG, Buffer.concat([k[j], e[j]]));
@@ -82,7 +82,7 @@ for (let j = 0; j < m - 1; j++) {
     }
 }
 
-const t = taggedHash(TAP_TWEAK_TAG, k[m - 1]);
+const t = taggedHash(TAP_TWEAK_TAG, Buffer.concat([p, k[m]]));
 if (t.compare(EC_N) >= 0) {
     throw new Error('Over the order of secp256k1')
 }
@@ -92,21 +92,12 @@ const T = ecpair.pointFromScalar(t, false);
 const Q = ecpair.pointAdd(P, T);
 console.log('Q', Q.toString('hex'));
 
-if (q !== x(Q) || (controlBlock[0] & 1) !== (y(Q) % 2)) {
+
+if (q.compare(Q.slice(1, 33)) !== 0 || (controlBlock[0] & 1) !== (Q[64] % 2)) {
     throw new Error('Check Failed!')
 }
 
-function x(buffer) {
-    // check int starts with 0x04 and size 65
-    // chunkHasUncompressedPubkey
-    buffer.slice(1, 33)
-}
-
-function y(buffer) {
-    // check int starts with 0x04 and size 65
-    // chunkHasUncompressedPubkey
-    buffer.slice(33)
-}
+console.log("### OK")
 
 function compactSize(l) {
     if (l < 253) {
@@ -132,6 +123,3 @@ function compactSize(l) {
     bw.writeUInt64(l);
     return b
 }
-
-//Q: 040afd16b0586dea44b0818d1b8dec7b13f57c2f0f9135bba13be4c4ae2ced599398366ed7e78dbf5d8b0f22d7d2353a206d7b1a5d855a0de9fea27cab459b365e
-//q: 1ebe8b90363bd097aa9f352c8b21914e1886bc09fe9e70c09f33ef2d2abdf4bc
