@@ -65,7 +65,6 @@ const v = controlBlock[0] & 0xfe; // leaf version
 const P = ecpair.liftX(p);
 console.log('P', P.toString('hex'))
 
-
 const k = [];
 const e = [];
 
@@ -77,9 +76,9 @@ k[0] = taggedHash(TAP_LEAF_TAG, tapLeafMsg); // TODO: test values?
 for (let j = 0; j < m - 1; j++) {
     e[j] = controlBlock.slice(33 + 32 * j, 65 + 32 * j);
     if (k[j].compare(e[j]) < 0) {
-        k[j + 1] = taggedHash(TAP_BRANCH_TAG, k[j] || e[j]);
+        k[j + 1] = taggedHash(TAP_BRANCH_TAG, Buffer.concat([k[j], e[j]]));
     } else {
-        k[j + 1] = taggedHash(TAP_BRANCH_TAG, e[j] || k[j]);
+        k[j + 1] = taggedHash(TAP_BRANCH_TAG, Buffer.concat([e[j], k[j]]));
     }
 }
 
