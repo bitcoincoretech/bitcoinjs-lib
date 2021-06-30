@@ -1,8 +1,8 @@
 const bscript = require('../src/script');
 
-const hex = 'cb127401000000002251201ebe8b90363bd097aa9f352c8b21914e1886bc09fe9e70c09f33ef2d2abdf4bc';
+const hex = '2083d8ee77a0f3a32a5cea96fd1624d623b836c1e5d1ac2dcde46814b619320c18ac';
 const prevout = Buffer.from(hex, 'hex');
-const prevsScriptOut = prevout.slice(9)
+const prevsScriptOut = prevout; //.slice(9)
 
 const asm = bscript.toASM(prevsScriptOut)
 console.log('######## asm: ', asm)
