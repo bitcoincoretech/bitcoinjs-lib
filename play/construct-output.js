@@ -1,4 +1,5 @@
 const BN = require('bn.js');
+const ecc = require('tiny-secp256k1');
 const ecpair = require('../src/ecpair');
 const taggedHash = require('../src/crypto').taggedHash;
 
@@ -18,8 +19,7 @@ function tweakPublicKey(pubKey, h) {
     }
 
     const P = ecpair.liftX(pubKey);
-    const T = ecpair.pointFromScalar(tweakHash);
-    const Q = ecpair.pointAdd(P, T);
+    const Q = ecc.pointAddScalar(P, tweakHash)
     return [Q[64] % 2, Q.slice(1, 33)];
 }
 
