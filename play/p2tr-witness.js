@@ -1,7 +1,8 @@
 
-const ecpair = require('../src/ecpair');
 const bscript = require('../src/script');
+const ecpair = require('../src/ecpair');
 const taggedHash = require('../src/crypto').taggedHash;
+const { BufferWriter } = require('../src/bufferutils')
 
 const ANNEX_PREFIX = 0x50;
 const EC_N = Buffer.from('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141', 'hex');
@@ -10,96 +11,89 @@ const TAP_LEAF_TAG = Buffer.from('TapLeaf', 'utf8');
 const TAP_BRANCH_TAG = Buffer.from('TapBranch', 'utf8');
 const TAP_TWEAK_TAG = Buffer.from('TapTweak', 'utf8');
 
-const witnessHex = [
-    "9675a9982c6398ea9d441cb7a943bcd6ff033cc3a2e01a0178a7d3be4575be863871c6bf3eef5ecd34721c784259385ca9101c3a313e010ac942c99de05aaaa602",
-    "5799cf4b193b730fb99580b186f7477c2cca4d28957326f6f1a5d14116438530e7ec0ce1cd465ad96968ae8a6a09d4d37a060a115919f56fcfebe7b2277cc2df5cc08fb6cda9105ee2512b2e22635aba",
-    "7520c7b5db9562078049719228db2ac80cb9643ec96c8055aa3b29c2c03d4d99edb0ac",
-    "c1a7957acbaaf7b444c53d9e0c9436e8a8a3247fd515095d66ddf6201918b40a3668f9a4ccdffcf778da624dca2dda0b08e763ec52fd4ad403ec7563a3504d0cc168b9a77a410029e01dac89567c9b2e6cd726e840351df3f2f58fefe976200a19244150d04153909f660184d656ee95fa7bf8e1d4ec83da1fca34f64bc279b76d257ec623e08baba2cfa4ea9e99646e88f1eb1668c00c0f15b7443c8ab83481611cc3ae85eb89a7bfc40067eb1d2e6354a32426d0ce710e88bc4cc0718b99c325509c9d02a6a980d675a8969be10ee9bef82cafee2fc913475667ccda37b1bc7f13f64e56c449c532658ba8481631c02ead979754c809584a875951619cec8fb040c33f06468ae0266cd8693d6a64cea5912be32d8de95a6da6300b0c50fdcd6001ea41126e7b7e5280d455054a816560028f5ca53c9a50ee52f10e15c5337315bad1f5277acb109a1418649dc6ead2fe14699742fee7182f2f15e54279c7d932ed2799d01d73c97e68bbc94d6f7f56ee0a80efd7c76e3169e10d1a1ba3b5f1eb02369dc43af687461c7a2a3344d13eb5485dca29a67f16b4cb988923060fd3b65d0f0352bb634bcc44f2fe668836dcd0f604150049835135dc4b4fbf90fb334b3938a1f137eb32f047c65b85e6c1173b890b6d0162b48b186d1f1af8521945924ac8ac8efec321bf34f1d4b3d4a304a10313052c652d53f6ecb8a55586614e8950cde9ab6fe8e22802e93b3b9139112250b80ebc589aba231af535bb20f7eeec2e412f698c17f3fdc0a2e20924a5e38b21a628a9e3b2a61e35958e60c7f5087c"
-];
 
-const utxo = Buffer.from('cb127401000000002251201ebe8b90363bd097aa9f352c8b21914e1886bc09fe9e70c09f33ef2d2abdf4bc', 'hex');
+function validateTaprootScript(q, witness) {
+    if (!witness || !witness.length) {
+        throw new Error('The witness stack has 0 elements');
+    }
 
-console.log('utxo asm: ', bscript.toASM(utxo.slice(9)));
-const q = utxo.slice(11);
-console.log('q: ', q.toString('hex'));
+    // check for annex
+    if (witness.length >= 2 && (witness[witness.length - 1][0] === ANNEX_PREFIX)) {
+        witness.pop(); // remove annex, ignored by taproot
+    }
 
-const witness = witnessHex.map(w => Buffer.from(w, 'hex'));
+    // key path spending
+    if (witness.length === 1) {
+        // the only element is the signature
+        // must be checked against the tweaked public key
+        // TODO
+        return
+    }
 
-if (!witness || !witness.length) {
-    throw new Error('The witness stack has 0 elements');
-}
+    // script path spending
+    const controlBlock = witness[witness.length - 1];
+    if (controlBlock.length < 33) {
+        throw new Error(`The control-block length is too small. Got ${controlBlock.length}, expected 33.`);
+    }
+    if ((controlBlock.length - 33) % 32 !== 0) {
+        throw new Error(`The control-block length of ${controlBlock.length} is incorrect!`);
+    }
+    const m = (controlBlock.length - 33) / 32;
+    if (m > 128) {
+        throw new Error(`The control-block length is too large. Got ${controlBlock.length}.`);
+    }
+    const script = witness[witness.length - 2];
 
-// check for annex
-if (witness.length >= 2 && (witness[witness.length - 1][0] === ANNEX_PREFIX)) {
-    witness.pop(); // remove annex, ignored by taproot
-}
+    const p = controlBlock.slice(1, 33);
+    const P = ecpair.liftX(p);
 
-// key path spending
-if (witness.length === 1) {
-    // the only element is the signature
-    // must be checked against the tweaked public key
-    // TODO
-    return
-}
+    const v = controlBlock[0] & 0xfe; // leaf version
+    // TODO: fail for unkver
 
-// script path spending
-const controlBlock = witness[witness.length - 1];
-if (controlBlock.length < 33) {
-    throw new Error(`The control-block length is too small. Got ${controlBlock.length}, expected 33.`);
-}
-if ((controlBlock.length - 33) % 32 !== 0) {
-    throw new Error('The control-block length is incorrect!');
-}
-const m = (controlBlock.length - 33) / 32;
-if (m > 128) {
-    throw new Error(`The control-block length is too large. Got ${controlBlock.length}.`);
-}
-const script = witness[witness.length - 2];
-console.log('redeem asm: ', bscript.toASM(script));
+    const k = [];
+    const e = [];
 
-const p = controlBlock.slice(1, 33);
-console.log('p', p.toString('hex'));
-
-const v = controlBlock[0] & 0xfe; // leaf version
-
-const P = ecpair.liftX(p);
-console.log('P', P.toString('hex'))
-
-const k = [];
-const e = [];
-
-const cSize = compactSize(script.length);
-const tapLeafMsg = Buffer.concat([Buffer.from([v]), cSize, script]);
-k[0] = taggedHash(TAP_LEAF_TAG, tapLeafMsg); // TODO: test values?
+    const cSize = _compactSize(script.length);
+    const tapLeafMsg = Buffer.concat([Buffer.from([v]), cSize, script]);
+    k[0] = taggedHash(TAP_LEAF_TAG, tapLeafMsg); // TODO: test values?
 
 
-for (let j = 0; j < m; j++) {
-    e[j] = controlBlock.slice(33 + 32 * j, 65 + 32 * j);
-    if (k[j].compare(e[j]) < 0) {
-        k[j + 1] = taggedHash(TAP_BRANCH_TAG, Buffer.concat([k[j], e[j]]));
-    } else {
-        k[j + 1] = taggedHash(TAP_BRANCH_TAG, Buffer.concat([e[j], k[j]]));
+    for (let j = 0; j < m; j++) {
+        e[j] = controlBlock.slice(33 + 32 * j, 65 + 32 * j);
+        if (k[j].compare(e[j]) < 0) {
+            k[j + 1] = taggedHash(TAP_BRANCH_TAG, Buffer.concat([k[j], e[j]]));
+        } else {
+            k[j + 1] = taggedHash(TAP_BRANCH_TAG, Buffer.concat([e[j], k[j]]));
+        }
+    }
+
+    const t = taggedHash(TAP_TWEAK_TAG, Buffer.concat([p, k[m]]));
+    if (t.compare(EC_N) >= 0) {
+        throw new Error('Over the order of secp256k1')
+    }
+
+    const T = ecpair.pointFromScalar(t, false);
+
+    const Q = ecpair.pointAdd(P, T);
+
+    if (q.compare(Q.slice(1, 33)) !== 0) {
+        // console.log('script', bscript.toASM(script));
+        // console.log('p', p.toString('hex'));
+        // console.log('v', v);
+        // console.log('P', P.toString('hex'));
+        // console.log('cSize', cSize.toString('hex'));
+        // console.log('t', t.toString('hex'));
+        // console.log('T', T.toString('hex'));
+        // console.log('Q', Q.toString('hex'));
+        throw new Error('Tweaked key does not match!')
+    }
+
+    if ((controlBlock[0] & 1) !== (Q[64] % 2)) {
+        throw new Error('Incorrect parity!')
     }
 }
 
-const t = taggedHash(TAP_TWEAK_TAG, Buffer.concat([p, k[m]]));
-if (t.compare(EC_N) >= 0) {
-    throw new Error('Over the order of secp256k1')
-}
-
-const T = ecpair.pointFromScalar(t, false);
-
-const Q = ecpair.pointAdd(P, T);
-console.log('Q', Q.toString('hex'));
-
-
-if (q.compare(Q.slice(1, 33)) !== 0 || (controlBlock[0] & 1) !== (Q[64] % 2)) {
-    throw new Error('Check Failed!')
-}
-
-console.log("### OK")
-
-function compactSize(l) {
+function _compactSize(l) {
     if (l < 253) {
         return Buffer.from([l]);
     }
@@ -122,4 +116,8 @@ function compactSize(l) {
     bw.writeUInt8(255);
     bw.writeUInt64(l);
     return b
+}
+
+module.exports = {
+    validateTaprootScript
 }

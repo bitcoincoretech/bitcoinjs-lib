@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}/play/p2tr-witness.js"
+            "program": "${workspaceFolder}/play/p2tr-test02.js"
         }
     ]
 }
