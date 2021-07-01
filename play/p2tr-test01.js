@@ -12,14 +12,14 @@ fixtures
         const witness = f.success.witness.map(w => Buffer.from(w, 'hex'));
 
         try {
-            validateTaprootScript(q, witness);
+            validateTaprootScript(utxo.slice(9), witness);
         } catch (err) {
             console.log(`[${i}]: ${err.message}`);
             failedCount++
 
             // console.log('q: ', utxo.slice(11).toString('hex'));
 
-            if (i === 48) {
+            if (i === -48) {
                 console.log('utxo asm: ', bscript.toASM(utxo.slice(9)));
                 console.log(JSON.stringify(f));
                 throw err;

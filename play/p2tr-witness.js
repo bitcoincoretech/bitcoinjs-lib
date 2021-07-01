@@ -4,6 +4,7 @@ const ecpair = require('../src/ecpair');
 const taggedHash = require('../src/crypto').taggedHash;
 const { BufferWriter } = require('../src/bufferutils')
 
+const OPS = bscript.OPS;
 const ANNEX_PREFIX = 0x50;
 const EC_N = Buffer.from('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141', 'hex');
 
@@ -12,7 +13,18 @@ const TAP_BRANCH_TAG = Buffer.from('TapBranch', 'utf8');
 const TAP_TWEAK_TAG = Buffer.from('TapTweak', 'utf8');
 
 
-function validateTaprootScript(q, witness) {
+function validateTaprootScript(scriptPubKey, witness) {
+    if (
+        scriptPubKey.length !== 34 ||
+        scriptPubKey[0] !== OPS.OP_1 ||
+        scriptPubKey[1] !== 32
+    ) {
+        throw new TypeError('Output is invalid');
+        // console.log('Output is invalid');
+        // return;
+    }
+
+
     if (!witness || !witness.length) {
         throw new Error('The witness stack has 0 elements');
     }
@@ -74,6 +86,7 @@ function validateTaprootScript(q, witness) {
 
     const T = ecpair.pointFromScalar(t, false);
 
+    const q = scriptPubKey.slice(2);
     const Q = ecpair.pointAdd(P, T);
 
     if (q.compare(Q.slice(1, 33)) !== 0) {

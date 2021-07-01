@@ -33,10 +33,11 @@ const f = {
 }
 
 const utxo = Buffer.from(f.prevouts[f.index], 'hex');
-console.log('utxo asm: ', bscript.toASM(utxo.slice(9)));
+const scriptPubKey = utxo.slice(9);
+console.log('utxo asm: ', bscript.toASM(scriptPubKey));
 
 const q = utxo.slice(11);
 const witness = f.success.witness.map(w => Buffer.from(w, 'hex'));
 
 
-validateTaprootScript(q, witness);
+validateTaprootScript(scriptPubKey, witness);
