@@ -144,7 +144,7 @@ function liftX(buffer: Buffer): Buffer | null {
   if (!ySq.eq(y.redPow(BN_2))) {
     return null;
   }
-  const y1 = (y & 1) === 0 ? y : EC_P.sub(y);
+  const y1 = y.isEven() ? y : EC_P.sub(y);
 
   return Buffer.concat([
     Buffer.from([0x04]),

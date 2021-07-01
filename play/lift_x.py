@@ -6,8 +6,12 @@ b = 7
 def lift_x(x):
     """Given an X coordinate on the curve, return a corresponding affine point for which the Y coordinate is even."""
     x_3 = pow(x, 3, p)
+    print("x_3", x_3)
     v = x_3 + a * x + b
+    print("y2", v)
     y = modsqrt(v, p)
+    print("y", y)
+    print("p-y", p - y)
     if y is None:
         return None
     return (x, p - y if y & 1 else y, 1)
@@ -32,10 +36,7 @@ def modsqrt(a, p):
     return None
 
 
-v = int("a7957acbaaf7b444c53d9e0c9436e8a8a3247fd515095d66ddf6201918b40a36", 16)
+v = int("d3a88391bda57be92148aba9945577043513d0d47d0c154bc2a08fa42deef132", 16)
 P = lift_x(v)
-print(P)
-print(hex(P[1]))
-
-# P 04a7957acbaaf7b444c53d9e0c9436e8a8a3247fd515095d66ddf6201918b40a36c37b6f8b761f38e63822f3eb14d0bfc90cb17deb11d3f11ad1b9277c061120a6
-# (75800353429985937174411509990545465689769652460566598164193139917472828492342L, 88419097516421462002705622384172466804817355303201779050493513811414523912358L, 1)
+print("P", P)
+# print("hex(P.y)",hex(P[1]))
