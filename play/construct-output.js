@@ -16,6 +16,7 @@ function tweakPublicKey(pubKey, h) {
     }
 
     const P = ecpair.liftX(pubKey);
+    console.log('P', P.toString('hex'))
     const Q = ecc.pointAddScalar(P, tweakHash);
     return [Q[64] % 2, Q.slice(1, 33)];
 }
@@ -35,7 +36,7 @@ function tweakSecretKey(privKey, h) {
     const s0 = secretKey.toRed(GROUP_ORDER_REDUCTION);
     const t0 = t.toRed(GROUP_ORDER_REDUCTION);
 
-    return s0.redAdd(t0).fromRed().toBuffer()
+    return s0.redAdd(t0).fromRed().toBuffer('be', 32);
 }
 
 // const pubKey = Buffer.from('85fcbac099a9abaebf2ac1a7fe3beea4f422873d826c7043af41f1d74b140eda', 'hex');
@@ -61,13 +62,32 @@ function tweakSecretKey(privKey, h) {
 // const ret = tweakSecretKey(privKey, h1);
 // console.log('ret', ret.toString());
 
-const privKey = Buffer.from('b25a5171db96493d521376d2638be1e6ca134803689df54d6cec20127b21c763', 'hex');
+// const privKey = Buffer.from('9a4b4f11eb20cdcf052602d62345ebe06fdf58f4f2376782cc0e8496d43debd5', 'hex');
 const h = Buffer.from('fea3ab72b57692b79da0d28788dd3e61e41338ca3786b0f10b19680351203da1', 'hex');
 
-const keyPair = ecpair.fromPrivateKey(privKey);
+// const keyPair = ecpair.fromPrivateKey(privKey);
+// console.log('PubKey', keyPair.publicKey.toString('hex'));
 
-const t1 = tweakPublicKey(keyPair.publicKey.slice(1), h)[1];
-const t2 = ecpair.fromPrivateKey(tweakSecretKey(keyPair.privateKey, h));
+// const t1 = tweakPublicKey(keyPair.publicKey.slice(1), h)[1];
+// const t2 = ecpair.fromPrivateKey(tweakSecretKey(keyPair.privateKey, h));
 
-console.log('t1', t1.toString('hex'));
-console.log('t2', t2.publicKey.toString('hex'));
+// console.log(`t1`, t1.toString('hex'));
+// console.log(`t2`, t2.publicKey.slice(1).toString('hex'));
+
+for (let i = 1; i < 300000; i += 1) {
+    const privKey = ecpair.makeRandom().privateKey;
+    console.log('privKey', privKey.toString('hex'))
+
+
+    const keyPair = ecpair.fromPrivateKey(privKey);
+    // console.log('publicKey', keyPair.publicKey.toString('hex'))
+
+    const t1 = tweakPublicKey(keyPair.publicKey.slice(1), h)[1];
+    const t2 = ecpair.fromPrivateKey(tweakSecretKey(keyPair.privateKey, h));
+
+    console.log(`t1[${i}]`, t1.toString('hex'));
+    console.log(`t2[${i}]`, t2.publicKey.slice(1).toString('hex'));
+    if (t1.toString('hex') !== t2.publicKey.slice(1).toString('hex')) {
+        throw new Error('eeer')
+    }
+}

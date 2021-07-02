@@ -7,10 +7,6 @@ const randomBytes = require('randombytes');
 const typeforce = require('typeforce');
 const wif = require('wif');
 
-
-// const auto GROUP_ORDER = scalarFromHex("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
-// const auto P = scalarFromHex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f");
-
 const EC_P = new BN(Buffer.from('fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f', 'hex'));
 
 const EC_P_REDUCTION = BN.red(EC_P);
@@ -148,8 +144,8 @@ function liftX(buffer: Buffer): Buffer | null {
 
   return Buffer.concat([
     Buffer.from([0x04]),
-    Buffer.from(x1.toBuffer('be')),
-    Buffer.from(y1.toBuffer('be')),
+    Buffer.from(x1.toBuffer('be', 32)),
+    Buffer.from(y1.toBuffer('be', 32)),
   ]);
 }
 
