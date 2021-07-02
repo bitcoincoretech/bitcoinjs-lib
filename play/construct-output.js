@@ -35,11 +35,11 @@ function tweakSecretKey(privKey, h) {
     const s0 = secretKey.toRed(GROUP_ORDER_REDUCTION);
     const t0 = t.toRed(GROUP_ORDER_REDUCTION);
 
-    return s0.redAdd(t0).fromRed()
+    return s0.redAdd(t0).fromRed().toBuffer()
 }
 
-const pubKey = Buffer.from('85fcbac099a9abaebf2ac1a7fe3beea4f422873d826c7043af41f1d74b140eda', 'hex');
-const h = Buffer.from('982eb316dd5ab519ec32e699ea485dce670f75325459a84b86cb697da4df315a', 'hex');
+// const pubKey = Buffer.from('85fcbac099a9abaebf2ac1a7fe3beea4f422873d826c7043af41f1d74b140eda', 'hex');
+// const h = Buffer.from('982eb316dd5ab519ec32e699ea485dce670f75325459a84b86cb697da4df315a', 'hex');
 
 // const x = tweakPublicKey(pubKey, h);
 // console.log(x[0], x[1].toString('hex'))
@@ -56,7 +56,18 @@ const h = Buffer.from('982eb316dd5ab519ec32e699ea485dce670f75325459a84b86cb697da
 
 
 
+// const privKey = Buffer.from('b25a5171db96493d521376d2638be1e6ca134803689df54d6cec20127b21c763', 'hex');
+// const h1 = Buffer.from('fea3ab72b57692b79da0d28788dd3e61e41338ca3786b0f10b19680351203da1', 'hex');
+// const ret = tweakSecretKey(privKey, h1);
+// console.log('ret', ret.toString());
+
 const privKey = Buffer.from('b25a5171db96493d521376d2638be1e6ca134803689df54d6cec20127b21c763', 'hex');
-const h1 = Buffer.from('fea3ab72b57692b79da0d28788dd3e61e41338ca3786b0f10b19680351203da1', 'hex');
-const ret = tweakSecretKey(privKey, h1);
-console.log('ret', ret.toString());
+const h = Buffer.from('fea3ab72b57692b79da0d28788dd3e61e41338ca3786b0f10b19680351203da1', 'hex');
+
+const keyPair = ecpair.fromPrivateKey(privKey);
+
+const t1 = tweakPublicKey(keyPair.publicKey.slice(1), h)[1];
+const t2 = ecpair.fromPrivateKey(tweakSecretKey(keyPair.privateKey, h));
+
+console.log('t1', t1.toString('hex'));
+console.log('t2', t2.publicKey.toString('hex'));
