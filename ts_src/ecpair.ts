@@ -7,12 +7,12 @@ const randomBytes = require('randombytes');
 const typeforce = require('typeforce');
 const wif = require('wif');
 
-const EC_P = new BN(
-  Buffer.from(
-    'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f',
-    'hex',
-  ),
-);
+
+// const auto GROUP_ORDER = scalarFromHex("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
+// const auto P = scalarFromHex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f");
+
+const EC_P = new BN(Buffer.from('fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f', 'hex'));
+
 const EC_P_REDUCTION = BN.red(EC_P);
 const EC_P_QUADRATIC_RESIDUE = EC_P.addn(1).divn(4);
 const BN_2 = new BN(2);

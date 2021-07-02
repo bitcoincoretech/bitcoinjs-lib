@@ -4,21 +4,14 @@ const ecpair = require('../src/ecpair');
 const taggedHash = require('../src/crypto').taggedHash;
 
 const TAP_TWEAK_TAG = Buffer.from('TapTweak', 'utf8');
-const EC_P = new BN(
-    Buffer.from(
-        'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f',
-        'hex',
-    ),
-);
+const GROUP_ORDER = new BN(Buffer.from('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141', 'hex'));
 
-const G = Buffer.from('0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 'hex');
-
-const EC_P_REDUCTION = BN.red(EC_P);
+const GROUP_ORDER_REDUCTION = BN.red(GROUP_ORDER);
 
 function tweakPublicKey(pubKey, h) {
     const tweakHash = taggedHash(TAP_TWEAK_TAG, Buffer.concat([pubKey, h]));
     const t = new BN(tweakHash);
-    if (t.gte(EC_P)) {
+    if (t.gte(GROUP_ORDER)) {
         throw new Error('Tweak value over the SECP256K1 Order');
     }
 
@@ -29,40 +22,21 @@ function tweakPublicKey(pubKey, h) {
 
 
 function tweakSecretKey(privKey, h) {
-    console.log('x0', new BN(privKey).toString());
-    const P = ecc.pointFromScalar(privKey, false);
+    const P = ecc.pointFromScalar(privKey);
 
-    // console.log('P.x', new BN(P.slice(1, 33)).toString());
-    // console.log('P.y', new BN(P.slice(33)).toString());
+    const secretKey = P[0] === 0x02 ? new BN(privKey) : GROUP_ORDER.sub(new BN(privKey));
+    const tweakHash = taggedHash(TAP_TWEAK_TAG, Buffer.concat([P.slice(1, 33), h]));
 
-    // const keyPair = ecpair.fromPrivateKey(privKey, { compressed: false });
-    // console.log('P1.x', new BN(keyPair.publicKey.slice(1, 33)).toString(10));
-    // console.log('P1.y', new BN(keyPair.publicKey.slice(33)).toString(10));
+    const t = new BN(tweakHash);
+    if (t.gte(GROUP_ORDER)) {
+        throw new Error('Tweak value over the SECP256K1 Order');
+    }
 
-    // const P2 = ecc.pointMultiply(G, privKey);
-    // console.log('P2', new BN(P2.slice(1, 33)).toString(10))
+    const s0 = secretKey.toRed(GROUP_ORDER_REDUCTION);
+    const t0 = t.toRed(GROUP_ORDER_REDUCTION);
 
-
-
-    // const secretKey = P[0] === 0x02 ? new BN(privKey) : EC_P.sub(new BN(privKey)); //??????
-
-    // const tweakHash = taggedHash(TAP_TWEAK_TAG, Buffer.concat([P.slice(1, 33), h]));
-    // const t = new BN(tweakHash);
-    // if (t.gte(EC_P)) {
-    //     throw new Error('Tweak value over the SECP256K1 Order');
-    // }
-
-    // return secretKey.toRed(EC_P_REDUCTION).add(t);
+    return s0.redAdd(t0).fromRed()
 }
-
-
-// def taproot_tweak_seckey(seckey0, h):
-//     P = point_mul(G, int_from_bytes(seckey0))
-//     seckey = seckey0 if has_even_y(P) else SECP256K1_ORDER - seckey0
-//     t = int_from_bytes(tagged_hash("TapTweak", bytes_from_int(x(P)) + h))
-//     if t >= SECP256K1_ORDER:
-//         raise ValueError
-//     return (seckey + t) % SECP256K1_ORDER
 
 const pubKey = Buffer.from('85fcbac099a9abaebf2ac1a7fe3beea4f422873d826c7043af41f1d74b140eda', 'hex');
 const h = Buffer.from('982eb316dd5ab519ec32e699ea485dce670f75325459a84b86cb697da4df315a', 'hex');
@@ -70,15 +44,19 @@ const h = Buffer.from('982eb316dd5ab519ec32e699ea485dce670f75325459a84b86cb697da
 // const x = tweakPublicKey(pubKey, h);
 // console.log(x[0], x[1].toString('hex'))
 
-// priv key 074e6a1b6b938d9e2b226f0d26d4d4acefb756ad8a99981bebef5042ae75646e
-// tweak 3a6433c925c48ff72e2592bb773f83ecffa419e4dd5f07c35a600875dc79d5ce
-// x0 3304736335496013581270651908362709683685683084452582714536813111511753253998
-// hex(x0) 0x74e6a1b6b938d9e2b226f0d26d4d4acefb756ad8a99981bebef5042ae75646e
-// P (53430353449080239413176583068429118808829144644876406734308479077517594253373, 74583920015819746246773260271804695364017156239743376844372542995215891485399, 100382856461699887635434718960198682892290712886528098247498463400522730094383)
-// x1 23106451000801657652133565226451892561882153864631275534695715719550272303456
-// t 26411187336297671233404217134814602245567836949083858249232528831062025557454
+// hash: fea3ab72b57692b79da0d28788dd3e61e41338ca3786b0f10b19680351203da1
 
-const privKey = Buffer.from('074e6a1b6b938d9e2b226f0d26d4d4acefb756ad8a99981bebef5042ae75646e', 'hex');
-const tweak = Buffer.from('3a6433c925c48ff72e2592bb773f83ecffa419e4dd5f07c35a600875dc79d5ce', 'hex');
-const ret = tweakSecretKey(privKey, tweak);
-// console.log('ret', ret.toString('hex'));
+// priv key b25a5171db96493d521376d2638be1e6ca134803689df54d6cec20127b21c763
+// tweak d92c34f9a3d814c5d118b6b2eef796a41bc9b6534502d5ba72764a702e646c68
+// x0 80671265394704751131509780624416161757499252299864293449009078490892893013859
+// hex(x0) 0xb25a5171db96493d521376d2638be1e6ca134803689df54d6cec20127b21c763
+// P
+// x1 63109171191899158293825184743204445299180368216189056994397121928522405769866
+// t 98229995034510602585886389127476191394518680195399667927993206579147674250344
+
+
+
+const privKey = Buffer.from('b25a5171db96493d521376d2638be1e6ca134803689df54d6cec20127b21c763', 'hex');
+const h1 = Buffer.from('fea3ab72b57692b79da0d28788dd3e61e41338ca3786b0f10b19680351203da1', 'hex');
+const ret = tweakSecretKey(privKey, h1);
+console.log('ret', ret.toString());

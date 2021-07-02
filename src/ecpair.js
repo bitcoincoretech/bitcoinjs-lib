@@ -7,6 +7,8 @@ const BN = require('bn.js');
 const randomBytes = require('randombytes');
 const typeforce = require('typeforce');
 const wif = require('wif');
+// const auto GROUP_ORDER = scalarFromHex("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
+// const auto P = scalarFromHex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f");
 const EC_P = new BN(
   Buffer.from(
     'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f',
@@ -97,7 +99,6 @@ function liftX(buffer) {
     return null;
   }
   const y1 = y.isEven() ? y : EC_P.sub(y);
-  //return (x, p - y if y & 1 else y, 1)
   return Buffer.concat([
     Buffer.from([0x04]),
     Buffer.from(x1.toBuffer('be')),
