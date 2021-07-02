@@ -74,7 +74,7 @@ const h = Buffer.from('fea3ab72b57692b79da0d28788dd3e61e41338ca3786b0f10b1968035
 // console.log(`t1`, t1.toString('hex'));
 // console.log(`t2`, t2.publicKey.slice(1).toString('hex'));
 
-for (let i = 1; i < 300000; i += 1) {
+for (let i = 1; i < 3; i += 1) {
     const privKey = ecpair.makeRandom().privateKey;
     console.log('privKey', privKey.toString('hex'))
 
